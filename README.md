@@ -1,4 +1,4 @@
-# notes - terminal base note taking script.
+# notes - terminal base note app using bash script.
 
 - this works with vim
 - put your idea for terminal
