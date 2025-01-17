@@ -79,7 +79,7 @@ release
 tested only on macos
 License: MIT
 
-# And this is How to use
+# And this is how to use
 ```
 print_help() {
     echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-i] [-l] [-o NOTE_NAME]"
