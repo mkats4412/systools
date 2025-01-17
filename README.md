@@ -1,8 +1,8 @@
 # notes - terminal base note app using bash script.
 
 - this works with vim
-- put your idea for terminal
-- note usage on terminal
+- put your idea on terminal
+- note taking on terminal
 - very simple
 - note should be following
 each titles should start with '###'.. and you can write anything freely.
