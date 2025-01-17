@@ -1,0 +1,228 @@
+#!/bin/bash
+
+### ノートを保存するディレクトリ 自身で指定すること###
+MY_NOTES_DIR="$HOME/Documents/notes"
+
+if [ ! -d "$MY_NOTES_DIR" ]; then
+    mkdir -p "$MY_NOTES_DIR"
+fi
+
+# 前回使用したノート名を記録するファイル
+NOTE_NAME_FILE="$MY_NOTES_DIR/.note_name"
+
+# ノート名を記録ファイルから読み込む
+if [ -e "$NOTE_NAME_FILE" ]; then
+    MY_NOTE_FNAME=$(cat "$NOTE_NAME_FILE")
+    if [ -z "$MY_NOTE_FNAME" ]; then
+        MY_NOTE_FNAME="notes.md"
+    fi
+else
+    MY_NOTE_FNAME="notes.md"
+fi
+
+MY_NOTES="$MY_NOTES_DIR/$MY_NOTE_FNAME"
+
+# ファイルが存在しない場合は作成する
+if [ ! -e "$MY_NOTES" ]; then
+    touch "$MY_NOTES"
+fi
+
+# ヘルプメッセージ
+print_help() {
+    echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-i] [-l] [-o NOTE_NAME]"
+    echo "Options:"
+    echo " -c FILE_NAME  Create a new note file with the specified name"
+    echo " -d N          Delete N lines from the bottom"
+    echo " -e            Edit the notes file using Vim"
+    echo " -h            Display this help message"
+    echo " -a            Append note and end with ^D"
+    echo " -v            list md files in the notes directory"
+    echo " -f            Display the contents of the notes file"
+    echo " -o NOTE_NAME  Open the note with the specified name (without .md extension)"
+    echo " -s CONTENTS   Search contents from title"
+    echo " -t CONTENTS   Display titles matching the given CONTENTS"
+    echo " -t            Display all titles"
+    echo " -t N          Display the Nth title with its content"
+    echo " w/o           Show the current notes file"
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    print_help
+
+elif [[ "$1" == "-v" ]]; then
+    # メモの内容を表示
+    cat "$MY_NOTES"
+
+elif [[ "$1" == "-c" ]]; then
+    # 新しいメモファイルを作成
+    FNAME="$2"
+
+    # ファイル名が空か、".md" のみが入力された場合をチェック
+    if [[ -z "$FNAME" || "$FNAME" == ".md" ]]; then
+        echo "Please specify a valid new note file name."
+        exit 1
+    fi
+
+    # .md 拡張子を追加するか確認
+    if [[ "$FNAME" != *.md ]]; then
+        NEW_NOTE_FNAME="$FNAME.md"
+    else
+        NEW_NOTE_FNAME="$FNAME"
+    fi
+
+    NEW_NOTE_PATH="$MY_NOTES_DIR/$NEW_NOTE_FNAME"
+    if [ -e "$NEW_NOTE_PATH" ]; then
+        echo "File '$NEW_NOTE_FNAME' already exists."
+    else
+        touch "$NEW_NOTE_PATH"
+        echo "New note file '$NEW_NOTE_FNAME' has been created."
+        echo "$NEW_NOTE_FNAME" > "$NOTE_NAME_FILE"
+    fi
+
+elif [[ "$1" == "-o" ]]; then
+    # ノートを開くためのオプション
+    NOTE_NAME="$2"
+
+    # ノート名が空か、".md" のみが入力された場合をチェック
+    if [[ -z "$NOTE_NAME" || "$NOTE_NAME" == ".md" ]]; then
+        echo "Please specify a valid note name."
+        exit 1
+    fi
+
+    # .md 拡張子を追加するか確認
+    if [[ "$NOTE_NAME" != *.md ]]; then
+        NOTE_PATH="$MY_NOTES_DIR/$NOTE_NAME.md"
+    else
+        NOTE_PATH="$MY_NOTES_DIR/$NOTE_NAME"
+    fi
+
+    # ノートが存在するか確認
+    if [ -e "$NOTE_PATH" ]; then
+        BASENAME=$(basename "$NOTE_PATH" .md)
+        echo "$BASENAME.md" > "$NOTE_NAME_FILE"
+        echo "Your notes file is $BASENAME.md"
+    else
+        echo "Error: Note '$NOTE_NAME.md' does not exist."
+        exit 1
+    fi
+
+elif [[ "$1" == "-t" ]]; then
+    if [[ -z "$2" ]]; then
+        # タイトルを表示する
+        cat "$MY_NOTES" | grep "###" | sed 's/### //g' | nl
+    elif [[ "$2" =~ ^[0-9]+$ ]]; then
+        # 数字が指定された場合
+        SECTION_NUMBER="$2"
+        awk -v section_num="$SECTION_NUMBER" '
+            BEGIN {
+                section_count = 0
+                print_section = 0
+            }
+            /^###/ {
+                section_count++
+                if (section_count == section_num) {
+                    print_section = 1
+                } else if (section_count == section_num + 1) {
+                    print_section = 0
+                    exit
+                }
+            }
+            print_section {
+                print
+            }
+        ' "$MY_NOTES"    
+    else
+        SEARCH_STRING="$2"
+        # 検索文字列にマッチするセクションを表示
+        awk -v search="$SEARCH_STRING" '
+            BEGIN { 
+                found = 0
+                printed = "" 
+            }
+            /^###/ { if (found) exit }
+            {
+                if (/^###/ && tolower($0) ~ tolower(search) && !found) {    
+                    found = 1
+                    section = ""
+                }
+                if (found) {
+                    if (printed != $0) {
+                        print $0
+                        printed = $0
+                    }
+                }
+            }
+        ' "$MY_NOTES"
+    fi
+
+elif [[ "$1" == "-a" ]]; then
+    # 引数が指定されていない場合は標準入力からメモを追加
+    echo "" >> "$MY_NOTES"
+    cat - >> "$MY_NOTES"
+
+elif [[ "$1" == "-f" ]]; then
+    # .mdファイルがあるかチェック
+    for file in "$MY_NOTES_DIR"/*.md; do
+        echo "$(basename "$file")"
+    done
+
+elif [[ "$1" == "-s" || "$1" == "--search" ]]; then
+    # 検索文字列を取得
+    SEARCH_STRING="$2"
+    if [[ -z "$SEARCH_STRING" ]]; then
+        echo "Please specify a search string."
+        exit 1
+    fi
+
+    # 検索文字列にマッチするセクションを表示
+    awk -v search="$SEARCH_STRING" '
+        BEGIN { 
+            found = 0
+            printed = "" 
+        }
+        {
+            if (tolower($0) ~ tolower(search) && !found) {    
+                found = 1
+                section = ""
+            }
+            if (found) {
+                if (printed != $0) {
+                    # 行番と行の内容を印刷
+                    print NR ": " $0                   
+                    printed = $0
+                    found = 0
+                }
+            }
+        }
+    ' "$MY_NOTES"
+
+elif [[ "$1" == "-e" ]]; then
+    # メモを編集するために Vim を開く
+    /usr/bin/vim "$MY_NOTES"
+
+elif  [[ "$1" == "-d" ]]; then
+    if [[ -z "%2" || ! "$2" =~ ^[0-9]+$ ]]; then
+        print_help
+        exit 1
+    fi
+    # Delete specified number of lines from the notes file
+    total_lines=$(wc -l < "$MY_NOTES")
+    ((start_line=total_lines - $2 + 1))
+    sed -i -e "${start_line},\$d" "$MY_NOTES"
+    echo --- 最終10行の出力です ---
+    tail -10 "$MY_NOTES"
+
+elif [[ "$1" == -* ]]; then
+    echo "Error: Invalid option '$1'"
+    print_help
+
+elif [ ! -z "$1" ]; then
+    # "$@" を使用することで、この関数に渡されたすべてのパラメータを
+    # ファイルに追加できます。
+    echo "" >> "$MY_NOTES"
+    echo "$@" >> "$MY_NOTES"
+
+else
+    # 現在のノート名を表示
+    echo "Your notes file is $MY_NOTE_FNAME"
+fi
