@@ -80,6 +80,7 @@ tested only on macos
 License: MIT
 
 # And this is How to use
+```
 print_help() {
     echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-i] [-l] [-o NOTE_NAME]"
     echo "Options:"
@@ -97,4 +98,5 @@ print_help() {
     echo " -t N          Display the Nth title with its content"
     echo " w/o           Show the current notes file"
 }
+```
 
