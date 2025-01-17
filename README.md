@@ -76,8 +76,9 @@ release
 ```  
 
 
-tested only on macos
-License: MIT
+- Tested only on macos
+- License: MIT
+- Can freely change the codes by yourself
 
 # And this is how to use
 ```
