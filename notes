@@ -1,7 +1,11 @@
 #!/bin/bash
 
 ### ノートを保存するディレクトリ 自身で指定すること###
-MY_NOTES_DIR="$HOME/Documents/notes"
+MY_NOTES_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/notes"
+### ノートの幅に使われるオフセット
+offset=5
+# ターミナルの幅を取得
+width=$(( $(tput cols) - offset ))
 
 if [ ! -d "$MY_NOTES_DIR" ]; then
     mkdir -p "$MY_NOTES_DIR"
@@ -36,7 +40,8 @@ print_help() {
     echo " -e            Edit the notes file using Vim"
     echo " -h            Display this help message"
     echo " -a            Append note and end with ^D"
-    echo " -v            list md files in the notes directory"
+    echo " -v            View files with less"
+    echo " -md           Display the contents of the notes file with markdown"
     echo " -f            Display the contents of the notes file"
     echo " -o NOTE_NAME  Open the note with the specified name (without .md extension)"
     echo " -s CONTENTS   Search contents from title"
@@ -51,7 +56,11 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
 
 elif [[ "$1" == "-v" ]]; then
     # メモの内容を表示
-    cat "$MY_NOTES"
+    cat "$MY_NOTES" | less 
+
+elif [[ "$1" == "-md" ]]; then
+    # メモの内容を表示
+    cat "$MY_NOTES" | glow -w "$width"
 
 elif [[ "$1" == "-c" ]]; then
     # 新しいメモファイルを作成
@@ -106,10 +115,11 @@ elif [[ "$1" == "-o" ]]; then
         exit 1
     fi
 
+
 elif [[ "$1" == "-t" ]]; then
     if [[ -z "$2" ]]; then
         # タイトルを表示する
-        cat "$MY_NOTES" | grep "###" | sed 's/### //g' | nl
+        cat "$MY_NOTES" | grep -E '^#\s+' | sed -E 's/^# {1,}//g' | nl
     elif [[ "$2" =~ ^[0-9]+$ ]]; then
         # 数字が指定された場合
         SECTION_NUMBER="$2"
@@ -118,7 +128,7 @@ elif [[ "$1" == "-t" ]]; then
                 section_count = 0
                 print_section = 0
             }
-            /^###/ {
+            /^# / {
                 section_count++
                 if (section_count == section_num) {
                     print_section = 1
@@ -130,7 +140,13 @@ elif [[ "$1" == "-t" ]]; then
             print_section {
                 print
             }
-        ' "$MY_NOTES"    
+        ' "$MY_NOTES" | {
+            if (( width <= 0 )); then
+                echo "Error: Terminal width is too small for the specified offset." >&2
+                exit 1
+            fi
+            glow -w "$width"  # 幅をglowに渡す
+        }
     else
         SEARCH_STRING="$2"
         # 検索文字列にマッチするセクションを表示
@@ -139,9 +155,9 @@ elif [[ "$1" == "-t" ]]; then
                 found = 0
                 printed = "" 
             }
-            /^###/ { if (found) exit }
+            /^# / { if (found) exit }
             {
-                if (/^###/ && tolower($0) ~ tolower(search) && !found) {    
+                if (/^# / && tolower($0) ~ tolower(search) && !found) {    
                     found = 1
                     section = ""
                 }
@@ -152,7 +168,13 @@ elif [[ "$1" == "-t" ]]; then
                     }
                 }
             }
-        ' "$MY_NOTES"
+        ' "$MY_NOTES" | {
+            if (( width <= 0 )); then
+                echo "Error: Terminal width is too small for the specified offset." >&2
+                exit 1
+            fi
+            glow -w "$width"  # 幅をglowに渡す
+        }
     fi
 
 elif [[ "$1" == "-a" ]]; then
