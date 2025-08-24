@@ -145,7 +145,7 @@ elif [[ "$1" == "-t" ]]; then
                 echo "Error: Terminal width is too small for the specified offset." >&2
                 exit 1
             fi
-            glow -w "$width"  # 幅をglowに渡す
+            glow -w 0 "$width"  # 幅をglowに渡す
         }
     else
         SEARCH_STRING="$2"
@@ -173,7 +173,7 @@ elif [[ "$1" == "-t" ]]; then
                 echo "Error: Terminal width is too small for the specified offset." >&2
                 exit 1
             fi
-            glow -w "$width"  # 幅をglowに渡す
+            glow -w 0 "$width"  # 幅をglowに渡す
         }
     fi
 
