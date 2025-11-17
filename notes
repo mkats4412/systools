@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### ノートを保存するディレクトリ 自身で指定すること###
-MY_NOTES_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/notes"
+MY_NOTES_DIR="$HOME/Documents/google_share/notes"
 ### ノートの幅に使われるオフセット
 offset=5
 # ターミナルの幅を取得
@@ -33,7 +33,7 @@ fi
 
 # ヘルプメッセージ
 print_help() {
-    echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-i] [-l] [-o NOTE_NAME]"
+    echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-a] [-v] [-md] [-o NOTE_NAME]"
     echo "Options:"
     echo " -c FILE_NAME  Create a new note file with the specified name"
     echo " -d N          Delete N lines from the bottom"
@@ -48,6 +48,7 @@ print_help() {
     echo " -t CONTENTS   Display titles matching the given CONTENTS"
     echo " -t            Display all titles"
     echo " -t N          Display the Nth title with its content"
+    echo " -t N --code   Copy block comment of the Nth title(work as snippet)
     echo " w/o           Show the current notes file"
 }
 
@@ -60,7 +61,7 @@ elif [[ "$1" == "-v" ]]; then
 
 elif [[ "$1" == "-md" ]]; then
     # メモの内容を表示
-    cat "$MY_NOTES" | glow -w "$width"
+    cat "$MY_NOTES" | glow -w 0 "$width"
 
 elif [[ "$1" == "-c" ]]; then
     # 新しいメモファイルを作成
@@ -123,30 +124,61 @@ elif [[ "$1" == "-t" ]]; then
     elif [[ "$2" =~ ^[0-9]+$ ]]; then
         # 数字が指定された場合
         SECTION_NUMBER="$2"
-        awk -v section_num="$SECTION_NUMBER" '
-            BEGIN {
-                section_count = 0
-                print_section = 0
-            }
-            /^# / {
-                section_count++
-                if (section_count == section_num) {
-                    print_section = 1
-                } else if (section_count == section_num + 1) {
+        if [[ "$3" == "--code" ]]; then
+            # --code オプションが指定された場合、コードブロックのみを抽出し、表示し、クリップボードにコピー
+            awk -v section_num="$SECTION_NUMBER" '
+                BEGIN {
+                    section_count = 0
                     print_section = 0
-                    exit
+                    in_code_block = 0
                 }
+                /^# / {
+                    section_count++
+                    if (section_count == section_num) {
+                        print_section = 1
+                    } else if (section_count == section_num + 1) {
+                        exit
+                    }
+                }
+                
+                print_section {
+                    if (/^```/) {
+                        in_code_block = !in_code_block
+                        next
+                    }
+                    if (in_code_block) {
+                        print
+                    }
+                }
+            ' "$MY_NOTES" | tee /dev/tty | pbcopy
+            echo -e "\n\nCopied to clipboard!" # 確認メッセージ
+        else
+            # 通常のセクション表示
+            awk -v section_num="$SECTION_NUMBER" '
+                BEGIN {
+                    section_count = 0
+                    print_section = 0
+                }
+                /^# / {
+                    section_count++
+                    if (section_count == section_num) {
+                        print_section = 1
+                    } else if (section_count == section_num + 1) {
+                        print_section = 0
+                        exit
+                    }
+                }
+                print_section {
+                    print
+                }
+            ' "$MY_NOTES" | {
+                if (( width <= 0 )); then
+                    echo "Error: Terminal width is too small for the specified offset." >&2
+                    exit 1
+                fi
+                glow -w 0 "$width"  # 幅をglowに渡す
             }
-            print_section {
-                print
-            }
-        ' "$MY_NOTES" | {
-            if (( width <= 0 )); then
-                echo "Error: Terminal width is too small for the specified offset." >&2
-                exit 1
-            fi
-            glow -w 0 "$width"  # 幅をglowに渡す
-        }
+        fi
     else
         SEARCH_STRING="$2"
         # 検索文字列にマッチするセクションを表示
@@ -173,7 +205,7 @@ elif [[ "$1" == "-t" ]]; then
                 echo "Error: Terminal width is too small for the specified offset." >&2
                 exit 1
             fi
-            glow -w 0 "$width"  # 幅をglowに渡す
+            glow -w "$width"  # 幅をglowに渡す
         }
     fi
 
