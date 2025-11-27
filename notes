@@ -42,13 +42,14 @@ print_help() {
     echo " -a            Append note and end with ^D"
     echo " -v            View files with less"
     echo " -md           Display the contents of the notes file with markdown"
-    echo " -f            Display the contents of the notes file"
+    echo " -raw          Display the raw contents of the notes file without any formatting"
+    echo " -f            Display the contents of the notes' files"
     echo " -o NOTE_NAME  Open the note with the specified name (without .md extension)"
     echo " -s CONTENTS   Search contents from title"
     echo " -t CONTENTS   Display titles matching the given CONTENTS"
     echo " -t            Display all titles"
     echo " -t N          Display the Nth title with its content"
-    echo " -t N --code   Copy block comment of the Nth title(work as snippet)
+    echo " -t N --code   Copy the block content of the Nth title"
     echo " w/o           Show the current notes file"
 }
 
@@ -60,8 +61,12 @@ elif [[ "$1" == "-v" ]]; then
     cat "$MY_NOTES" | less 
 
 elif [[ "$1" == "-md" ]]; then
-    # メモの内容を表示
+    # メモの内容をマークダウンで表示
     cat "$MY_NOTES" | glow -w 0 "$width"
+
+elif [[ "$1" == "-raw" ]]; then
+    # メモの内容を加工せずに表示
+    cat "$MY_NOTES"
 
 elif [[ "$1" == "-c" ]]; then
     # 新しいメモファイルを作成
@@ -150,7 +155,13 @@ elif [[ "$1" == "-t" ]]; then
                         print
                     }
                 }
-            ' "$MY_NOTES" | tee /dev/tty | pbcopy
+            ' "$MY_NOTES" | tee /dev/tty | {
+                if [[ "$(uname)" == "Darwin" ]]; then
+                    pbcopy # macOS
+                else
+                    xclip -selection clipboard # Linux
+                fi
+            }
             echo -e "\n\nCopied to clipboard!" # 確認メッセージ
         else
             # 通常のセクション表示
@@ -216,6 +227,10 @@ elif [[ "$1" == "-a" ]]; then
 
 elif [[ "$1" == "-f" ]]; then
     # .mdファイルがあるかチェック
+    echo "path:"
+    echo "$MY_NOTES_DIR"
+    echo "" # Add a newline for readability
+    echo "file:"
     for file in "$MY_NOTES_DIR"/*.md; do
         echo "$(basename "$file")"
     done
@@ -252,7 +267,7 @@ elif [[ "$1" == "-s" || "$1" == "--search" ]]; then
 
 elif [[ "$1" == "-e" ]]; then
     # メモを編集するために Vim を開く
-    /usr/bin/vim "$MY_NOTES"
+    vim "$MY_NOTES"
 
 elif  [[ "$1" == "-d" ]]; then
     if [[ -z "%2" || ! "$2" =~ ^[0-9]+$ ]]; then
@@ -262,7 +277,10 @@ elif  [[ "$1" == "-d" ]]; then
     # Delete specified number of lines from the notes file
     total_lines=$(wc -l < "$MY_NOTES")
     ((start_line=total_lines - $2 + 1))
-    sed -i -e "${start_line},\$d" "$MY_NOTES"
+    # For cross-platform sed compatibility (macOS/Linux)
+    # macOS sed requires an argument for -i (e.g., a backup extension)
+    sed -i.bak "${start_line},\$d" "$MY_NOTES"
+    rm "$MY_NOTES.bak"
     echo --- 最終10行の出力です ---
     tail -10 "$MY_NOTES"
 
