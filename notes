@@ -43,7 +43,7 @@ print_help() {
     echo " -v            View files with less"
     echo " -md           Display the contents of the notes file with markdown"
     echo " -raw          Display the raw contents of the notes file without any formatting"
-    echo " -f            Display the contents of the notes' files"
+    echo " -f            Display the contents of the notes file"
     echo " -o NOTE_NAME  Open the note with the specified name (without .md extension)"
     echo " -s CONTENTS   Search contents from title"
     echo " -t CONTENTS   Display titles matching the given CONTENTS"
@@ -62,7 +62,7 @@ elif [[ "$1" == "-v" ]]; then
 
 elif [[ "$1" == "-md" ]]; then
     # メモの内容をマークダウンで表示
-    cat "$MY_NOTES" | glow -w 0 "$width"
+    mdcat --columns "$width" "$MY_NOTES"
 
 elif [[ "$1" == "-raw" ]]; then
     # メモの内容を加工せずに表示
@@ -187,7 +187,7 @@ elif [[ "$1" == "-t" ]]; then
                     echo "Error: Terminal width is too small for the specified offset." >&2
                     exit 1
                 fi
-                glow -w 0 "$width"  # 幅をglowに渡す
+                mdcat --columns "$width"
             }
         fi
     else
@@ -216,7 +216,7 @@ elif [[ "$1" == "-t" ]]; then
                 echo "Error: Terminal width is too small for the specified offset." >&2
                 exit 1
             fi
-            glow -w "$width"  # 幅をglowに渡す
+            mdcat --columns "$width"
         }
     fi
 
@@ -267,7 +267,7 @@ elif [[ "$1" == "-s" || "$1" == "--search" ]]; then
 
 elif [[ "$1" == "-e" ]]; then
     # メモを編集するために Vim を開く
-    vim "$MY_NOTES"
+    nvim "$MY_NOTES"
 
 elif  [[ "$1" == "-d" ]]; then
     if [[ -z "%2" || ! "$2" =~ ^[0-9]+$ ]]; then
