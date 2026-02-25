@@ -50,6 +50,7 @@ print_help() {
     echo " -t            Display all titles"
     echo " -t N          Display the Nth title with its content"
     echo " -t N --code   Copy the block content of the Nth title"
+    echo " -g COMMAND [--force] Generate a cheat sheet for the specified COMMAND using Gemini. Use --force to ignore existing content check."
     echo " w/o           Show the current notes file"
 }
 
@@ -283,6 +284,61 @@ elif  [[ "$1" == "-d" ]]; then
     rm "$MY_NOTES.bak"
     echo --- 最終10行の出力です ---
     tail -10 "$MY_NOTES"
+
+elif [[ "$1" == "-g" ]]; then
+    # Gemini を使ってコマンドの備忘録を生成
+    FORCE=false
+    SEARCH_WORD=""
+
+    # 引数の解析
+    for arg in "$@"; do
+        if [[ "$arg" == "--force" ]]; then
+            FORCE=true
+        elif [[ "$arg" != "-g" && -z "$SEARCH_WORD" ]]; then
+            SEARCH_WORD="$arg"
+        fi
+    done
+
+    if [ -z "$SEARCH_WORD" ]; then
+        echo "エラー: 検索したいコマンド名を入力してください。"
+        exit 1
+    fi
+
+    # 既存データの確認
+    if [ "$FORCE" = true ]; then
+        INPUT_DATA=""
+    else
+        INPUT_DATA=$(grep "$SEARCH_WORD" "$MY_NOTES")
+    fi
+
+    # Gemini CLI を呼び出して判定と生成を行う
+    RESULT=$(cat << END | gemini 2>/dev/null
+# 指示
+「${SEARCH_WORD}」に関するターミナルコマンドの備忘録を作成してください。
+
+# 判定ルール
+1. **既存データの確認（最優先）**:
+   「入力データ」に内容が含まれている場合、AIによる解説は一切行わず、以下の1行のみを出力して終了してください。
+   既に指定のコマンドは記述してます
+
+2. **AIによる新規作成**:
+   「入力データ」が完全に空である場合のみ、AIの知識で「${SEARCH_WORD}」の正しい使い方と説明を生成してください。
+
+# 出力フォーマット（新規作成時のみ）
+- 1行目は「# 」の後に簡単なコマンドの説明
+- 説明の詳細は「- 」で始める。
+- 実際のコマンドは、説明の直後に \`\`\`（コードブロック）内に記述する。
+
+# 入力データ
+${INPUT_DATA}
+END
+)
+    if [ -n "$RESULT" ]; then
+        echo "$RESULT"
+        if [[ "$RESULT" != *"既に指定のコマンドは記述してます"* ]]; then
+            echo -e "\n$RESULT" >> "$MY_NOTES"
+        fi
+    fi
 
 elif [[ "$1" == -* ]]; then
     echo "Error: Invalid option '$1'"
