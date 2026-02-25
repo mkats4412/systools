@@ -1,103 +1,93 @@
-# notes - terminal base note app using bash script.
+# notes
 
-- this works with vim
-- put your idea on terminal
-- note taking on terminal
-- very simple
-- note should be following
-each titles should start with '###'.. and you can write anything freely.
-the following is just sample  
-```text
-### Replace String Pattern in All Files in a Directory
+A lightweight, terminal-based note-taking application powered by Bash script. It features Markdown integration and AI-powered cheat sheet generation via Gemini.
 
-$ find . -type f -exec sed -i 's/abcd/efgh/g' {} +
+## Features
 
-### Preview Markdown in VSCode
-	•	command+shift+V: Same pane
-	•	command+k v: Side-by-side pane
+* **Terminal-Centric**: Capture your ideas, snippets, and commands instantly without leaving the command line.
+* **Markdown Support**: Render beautiful notes using `mdcat`.
+* **Gemini AI Integration**: Automatically generate command cheat sheets if they don't exist in your notes.
+* **Clipboard Integration**: Extract and copy code blocks from specific sections directly to your clipboard.
+* **Simple Navigation**: Search by titles, view specific sections, or manage multiple note files easily.
 
-### grep Command Options
-	•	grep -i "string": Search ignoring case
-	•	grep -A 3: Show 3 lines after each match
+## Requirements
 
-### Location of skhd Configuration File for Shortcut Keys
+* **Primary Editor**: `nvim` (default) or `vim`.
+* **Rendering**: `mdcat` (for markdown preview).
+* **AI Features**: `gemini` CLI tool and Google Cloud SDK (`gcloud`) authenticated via `gcloud auth application-default login`.
+* **Clipboard**: `pbcopy` (macOS) or `xclip` (Linux).
 
-/Users/user/.config/skhd/skhdrc
+## Installation
 
-### About pipx (Python-based Applications)
-	•	pipx list: Lists currently installed applications
+1. Save the script as `notes`.
+2. Give it execution permissions: `chmod +x notes`.
+3. Move it to your PATH (e.g., `/usr/local/bin/`).
+4. Set your notes directory in the script:
+```bash
+MY_NOTES_DIR="$HOME/Documents/google_share/notes"
 
-### gtts-cli (Python Program)
+```
 
-gtts-cli 'hello' --output hello.mp3
 
-### Resolving Command Line Errors After Installing VS Code
 
-codesign --force --deep --sign - /Applications/Visual\ Studio\ Code.app
+## Usage
 
-### List Globally Installed Packages with npm
+### Commands Overview
 
-npm list -g
+| Option | Description |
+| --- | --- |
+| `-h` | Display help message. |
+| `-c FILE` | Create a new note file (e.g., `notes -c work`). |
+| `-o NAME` | Switch to/open a specific note file. |
+| `-f` | List all available `.md` files in the notes directory. |
+| `-e` | Edit the current note file using Neovim. |
+| `-a` | Append text from standard input (End with `Ctrl+D`). |
+| `-md` | Display the current note with Markdown formatting. |
+| `-raw` | Display the raw content of the note file. |
+| `-t` | List all titles in the current note. |
+| `-t N` | Display the content of the N-th title. |
+| `-t N --code` | Copy the code block from the N-th title to clipboard. |
+| `-s STR` | Search for a specific string within titles. |
+| `-g CMD` | Generate a cheat sheet for `CMD` using Gemini AI. |
+| `-d N` | Delete `N` lines from the bottom of the file. |
 
-### Update Packages with npm
-	•	npm update <package-name>
-	•	npm up <package-name>
-	•	npm update <package@version>
+### AI Cheat Sheet Generation
 
-### Troubleshooting Sleep Issues
+The `-g` option is particularly powerful. It checks if the command already exists in your notes. If not, it calls Gemini to generate a structured cheat sheet:
 
-sudo rm /Library/Preferences/com.apple.PowerManagement.*
+```bash
+notes -g "docker-compose"
 
-### Remove Files from Tracking After Setting .gitignore
+```
 
-cache-clean = !git rm --cached `git ls-files -ci --exclude-standard`
+Use `--force` to generate it even if the keyword exists.
 
-### Check Directory Sizes
+## Note Format
 
+To ensure the search and display functions work correctly, keep your notes in the following Markdown format. Each section must start with a `# ` (H1) or `### ` (as per your script's grep logic):
+
+```markdown
+# Replace String Pattern in All Files
+Use sed to replace text recursively.
+```bash
+find . -type f -exec sed -i 's/abcd/efgh/g' {} +
+
+```
+
+# Check Directory Sizes
+
+```bash
 du -sh ./* | sort -hr
 
-### Check External Disk Temperature
-
-smartctl -a /dev/disk4
-
-### Command to Move Home Folder
-
-sudo rsync -avh --progress ~/ <destination User folder>
-
-### .gitignore Example
-
-*.swp
-._*
-.DS_Store
-node_modules
-InfoScraper-darwin-x64
-release
-.sass-cache
-```  
-
-
-- Tested only on macos
-- License: MIT
-- Can freely change the codes by yourself
-
-# And this is how to use
-```
-print_help() {
-    echo "Usage: notes [-c FILE_NAME] [-d N] [-e] [-h] [-i] [-l] [-o NOTE_NAME]"
-    echo "Options:"
-    echo " -c FILE_NAME  Create a new note file with the specified name"
-    echo " -d N          Delete N lines from the bottom"
-    echo " -e            Edit the notes file using Vim"
-    echo " -h            Display this help message"
-    echo " -a            Append note and end with ^D"
-    echo " -v            list md files in the notes directory"
-    echo " -f            Display the contents of the notes file"
-    echo " -o NOTE_NAME  Open the note with the specified name (without .md extension)"
-    echo " -s CONTENTS   Search contents from title"
-    echo " -t CONTENTS   Display titles matching the given CONTENTS"
-    echo " -t            Display all titles"
-    echo " -t N          Display the Nth title with its content"
-    echo " w/o           Show the current notes file"
-}
 ```
 
+```
+
+## Environment
+- **Tested on**: macOS (Silicon/Intel).
+- **Shell**: Bash / Zsh.
+
+## License
+MIT License. Feel free to fork and modify it to suit your workflow!
+
+```
